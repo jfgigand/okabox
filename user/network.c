@@ -10,6 +10,7 @@
 
 static struct espconn *pUdpServer;
 static struct espconn *oka_udp_broadcast;
+struct espconn *oka_udp_collectd;
 
 void oka_wifi_init()
 {
@@ -144,10 +145,10 @@ process_samsung_sensors(char *pusrdata, unsigned short len)
 }
 
 void ICACHE_FLASH_ATTR
-oka_udp_send_str(char *msg)
+oka_udp_send_str(const char *msg)
 {
   size_t len = os_strlen(msg);
-  espconn_sendto(oka_udp_broadcast, msg, len + 1);
+  espconn_sendto(oka_udp_broadcast, (int8*)msg, len + 1);
 }
 
 //Called when new packet comes in.
@@ -176,7 +177,7 @@ udpserver_recv(void *arg, char *pusrdata, unsigned short len)
   }
 }
 
-void oka_udp_init()
+void ICACHE_FLASH_ATTR oka_udp_init()
 {
   // Server:
   pUdpServer = (struct espconn *)os_zalloc(sizeof(struct espconn));
@@ -193,15 +194,15 @@ void oka_udp_init()
     os_printf("UDP server listening on port %d\n", pUdpServer->proto.udp->local_port);
   }
 
+  struct ip_addr broadcast_ip;
+  IP4_ADDR(&broadcast_ip, 255, 255, 255, 255);
+
   // Client:
   oka_udp_broadcast = (struct espconn *)os_zalloc(sizeof(struct espconn));
   ets_memset( oka_udp_broadcast, 0, sizeof( struct espconn ) );
   oka_udp_broadcast->type = ESPCONN_UDP;
   oka_udp_broadcast->proto.udp = (esp_udp *)os_zalloc(sizeof(esp_udp));
   oka_udp_broadcast->proto.udp->remote_port = UDP_PORT;
-  struct ip_addr broadcast_ip;
-  IP4_ADDR(&broadcast_ip, 255, 255, 255, 255);
-  /* oka_udp_broadcast->proto.udp->remote_ip = ; */
   os_memcpy(oka_udp_broadcast->proto.udp->remote_ip, &broadcast_ip, 4);
   /* local_port=espconn_port() */
   /* espconn_regist_recvcb(oka_udp_broadcast, udpserver_recv); */
@@ -209,7 +210,21 @@ void oka_udp_init()
   if (espconn_create(oka_udp_broadcast)) {
     os_printf("Failed to create UDP server.");
   } else {
-    os_printf("UDP server listening on port %d\n", oka_udp_broadcast->proto.udp->local_port);
+    os_printf("UDP client created on port %d\n", oka_udp_broadcast->proto.udp->local_port);
+  }
+
+  // CollectD UDP network client:
+  oka_udp_collectd = (struct espconn *)os_zalloc(sizeof(struct espconn));
+  ets_memset( oka_udp_collectd, 0, sizeof( struct espconn ) );
+  oka_udp_collectd->type = ESPCONN_UDP;
+  oka_udp_collectd->proto.udp = (esp_udp *)os_zalloc(sizeof(esp_udp));
+  oka_udp_collectd->proto.udp->remote_port = 25826;
+  os_memcpy(oka_udp_collectd->proto.udp->remote_ip, &broadcast_ip, 4);
+
+  if (espconn_create(oka_udp_collectd)) {
+    os_printf("Failed to create UDP server for CollectD client.");
+  } else {
+    os_printf("CollectD UDP client created on port %d\n", oka_udp_collectd->proto.udp->local_port);
   }
 
   oka_udp_send_str("Et me voilà !");

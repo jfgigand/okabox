@@ -7,6 +7,7 @@
 
 struct tm *     ICACHE_FLASH_ATTR oka_time_gmtime_r(const time_t *tim_p, struct tm *res);
 struct tm *     ICACHE_FLASH_ATTR oka_time_gmtime(const time_t * tim_p);
+time_t          ICACHE_FLASH_ATTR oka_time_get();
 struct tm *     ICACHE_FLASH_ATTR oka_time_get_tm();
 void            ICACHE_FLASH_ATTR oka_time_init();
 const char *    ICACHE_FLASH_ATTR oka_time_format();

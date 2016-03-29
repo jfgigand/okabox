@@ -4,12 +4,13 @@
 // http://www.ti.com/lit/an/scpa032/scpa032.pdf
 
 #include "osapi.h"
-/* #include "gpio.h" */
 #include "user_interface.h"
+#include "gpio.h"
 #include "driver/key.h"
 #include "driver/i2c_master.h"
 #include "okardware.h"
 #include "dht.h"
+#include "network.h"
 
 /* #undef ENABLE_OKARDWARE_PCF8574 */
 #define ENABLE_OKARDWARE_PCF8574        1
@@ -203,6 +204,27 @@ void ICACHE_FLASH_ATTR okardware_dht_on_update(struct sensor_reading *reading)
     // DEBUG
     /* os_printf("DHT ON UPDATE: success=%d,  temp = %d, humid = %d\n", */
     /*           reading->success, reading->temperature, reading->humidity); */
+
+    // Make a CollectD packet for temperature and humidity using UDP binary protocol:
+    // https://collectd.org/wiki/index.php/Binary_protocol
+
+    /* unsigned char frame[] = */
+    /*   "\x00\x00\x00\x0b" "okabox\0"                // part: HOST (0x0000) */
+    /*   "\x00\x08\x00\x0c" "\0\0\0\0\0\0\0\0"        // part: TIME_HR (0x0008) */
+    /*   "\x00\x09\x00\x0c" "\x00\x00\x00\x02\x80\x00\x00\x00" // part: INTERVAL_HR (0x0009) */
+    /*   "\x00\x02\x00\x08" "dht\0"                   // part: PLUGIN (0x0002) */
+    /*   "\x00\x03\x00\x06" "1\0"                     // part: PLUGIN_INSTANCE (0x0003) */
+    /*   "\x00\x04\x00\x10" "temperature\0"           // part: TYPE (0x0004) */
+    /*   "\x00\x05\x00\x0d" "deci_deg\0"                // part: TYPE_INSTANCE (0x0005) */
+    /*   "\x00\x06\x00\x0f" "\x00\x01\x01" "\0\0\0\0\0\0\0\0" // part: VALUES (0x0006) */
+    /*   ; */
+
+    /* *(uint32_t *)(frame + 0x0B + 4) = oka_time_get(); */
+    /* *(double *)(frame + 0x0B + 0x0C + 0x0C + 0x08 + 0x06 + 0x10 + 0x00 + 0x0F + 7) = */
+    /*   (double)reading->temperature / 10; */
+    /* /\* int8 frame[] = { 0, 0, 0, 7, 'o', 'k', 'a', 'b', 'o', 'x'} *\/ */
+    /* os_printf("sending to UDP port %d a frame with %d bytes\n", oka_udp_collectd->proto.udp->local_port, sizeof(frame)); */
+    /* espconn_sendto(oka_udp_collectd, (int8*)&frame, sizeof(frame)); */
 
     const char buf[64];
     os_sprintf(buf, ":state:temp:%d:%d\n", reading->temperature, reading->humidity);
