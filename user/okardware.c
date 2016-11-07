@@ -4,7 +4,7 @@
 // http://www.ti.com/lit/an/scpa032/scpa032.pdf
 
 #include "osapi.h"
-#include "gpio.h"
+/* #include "gpio.h" */
 #include "user_interface.h"
 #include "driver/key.h"
 #include "driver/i2c_master.h"
@@ -218,6 +218,8 @@ void ICACHE_FLASH_ATTR okardware_dht_on_update(struct sensor_reading *reading)
 // Rotary from: https://github.com/anupak/esp8266-samplecode/tree/master/i2c_rotary_encoder
 /* #define ROTARY_ENCODER_MASK         0b00000111 */
 
+#ifdef ENABLE_ROTARY
+
 typedef enum {NO_CHANGE=0, ENCODER_CW, ENCODER_CCW} encoder_direction_t;
 
 static uint8_t  rotary_input_data[4];
@@ -270,7 +272,11 @@ uint8_t decode_rotary_encoder(uint8_t byte, encoder_direction_t *direction, uint
   return (ret);
 }
 
+#endif // ENABLE_ROTARY
+
 ////////////////////////////////////////////////////////////////////////////////
+
+#ifdef ENABLE_POWER_EMERGENCY
 
 #define EMERGENCY_EXTRA_TIME 3
 
@@ -309,6 +315,8 @@ void watch_timerfunc(void *arg)
     }
   }
 }
+
+#endif // ENABLE_POWER_EMERGENCY
 
 static void _trigger_but1()
 {
@@ -404,10 +412,12 @@ void ICACHE_FLASH_ATTR okardware_init()
   i2c_master_gpio_init();
 #endif
 
+#ifdef ENABLE_POWER_EMERGENCY
   // Watch
   os_timer_disarm(&watch_timer);
   os_timer_setfn(&watch_timer, (os_timer_func_t *)watch_timerfunc, NULL);
   /* os_timer_arm(&watch_timer, 500, 1); */
+#endif // ENABLE_POWER_EMERGENCY
 
   // Sensors
   dht_update_cb = &okardware_dht_on_update;
