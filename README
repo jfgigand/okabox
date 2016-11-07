@@ -1,0 +1,13 @@
+
+
+See https://github.com/esp8266/esp8266-wiki/wiki/gpio-registers if you get compile errors
+
+ADC wiring:
+0 - alim board: USB current
+1 - free
+2 - alim board: jack current
+3 - free
+4 - free (photoresistor on some board)
+5 - motherboard termistor
+6 - unplugged (available as side pin on old motherboard)
+7 - unplugged (pin A7 becomes RST)
